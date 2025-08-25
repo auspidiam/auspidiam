@@ -19,7 +19,7 @@ export default function AboutPage() {
 
       <div className="z-10 w-full max-w-2xl text-left mx-auto">
         <p>
-          It&apos;s a portmanteau of &quot;auspicious&quot; and &quot;diamond&quot;, which is the english translation of my name. Pronounced oss-pid-ee-um.
+          It is a portmanteau of auspicious and diamond, which is the english translation of my name. Pronounced oss-pid-ee-um.
         </p>
         <p className="mt-4">
           A lot of the content here will be nonsensical, but that is okay.
