@@ -1,94 +1,173 @@
-// file: app/page.tsx
-'use client';
+"use client";
 
-import { useRef, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useEffect, useState, useRef } from 'react';
 
-// Draggable Component
-const Draggable = ({ children }: { children: React.ReactNode }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const elementRef = useRef<HTMLDivElement>(null);
-  const offsetRef = useRef({ x: 0, y: 0 });
+// Define the shape and content of each interactive link
+const links = [
+  { id: 'about', text: 'about', href: '/about' },
+  { id: 'audits', text: 'audits', href: '/audits' },
+  { id: 'analysis', text: 'analysis', href: '/analysis' },
+];
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (elementRef.current) {
-      setIsDragging(true);
-      offsetRef.current = {
-        x: e.clientX - elementRef.current.offsetLeft,
-        y: e.clientY - elementRef.current.offsetTop,
-      };
-      e.preventDefault();
+export default function Home() {
+  // State to hold the position of each element
+  const [positions, setPositions] = useState({
+    about: { x: 0, y: 0 },
+    audits: { x: 0, y: 0 },
+    analysis: { x: 0, y: 0 },
+  });
+
+  // State to track which element is being dragged
+  const [isDragging, setIsDragging] = useState(null);
+  // Ref to store the last known mouse/touch position for smooth dragging
+  const lastPositionRef = useRef({ x: 0, y: 0 });
+  // Ref to measure the container and each draggable element
+  const containerRef = useRef(null);
+  const itemRefs = {
+    about: useRef(null),
+    audits: useRef(null),
+    analysis: useRef(null),
+  };
+  // New state to control visibility after positions are calculated
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Function to handle the start of a drag event (for both mouse and touch)
+  const handleDragStart = (e, id) => {
+    e.preventDefault();
+    setIsDragging(id);
+    const clientX = e.clientX || e.touches[0].clientX;
+    const clientY = e.clientY || e.touches[0].clientY;
+    lastPositionRef.current = { x: clientX, y: clientY };
+  };
+
+  // Function to handle the drag movement
+  const handleDragMove = (e) => {
+    if (!isDragging || !containerRef.current) return;
+
+    const clientX = e.clientX || e.touches[0].clientX;
+    const clientY = e.clientY || e.touches[0].clientY;
+
+    // Calculate the change in position (delta)
+    const deltaX = clientX - lastPositionRef.current.x;
+    const deltaY = clientY - lastPositionRef.current.y;
+
+    // Update positions based on the delta
+    setPositions(prevPositions => ({
+      ...prevPositions,
+      [isDragging]: {
+        x: prevPositions[isDragging].x + deltaX,
+        y: prevPositions[isDragging].y + deltaY,
+      },
+    }));
+
+    // Update the last position for the next movement calculation
+    lastPositionRef.current = { x: clientX, y: clientY };
+  };
+
+  // Function to handle the end of a drag event
+  const handleDragEnd = () => {
+      setIsDragging(null);
+  };
+
+  // Effect to set up event listeners for dragging
+  useEffect(() => {
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchmove', handleDragMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
+
+    // Clean up event listeners on component unmount
+    return () => {
+      // Fix for the incorrect cleanup function call.
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('touchmove', handleDragMove);
+      window.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [isDragging]);
+
+  // Effect to handle initial random positioning on component mount
+  useEffect(() => {
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const initialPositions = {};
+      const placedRects = [];
+      const safePadding = 50; // Extra spacing between elements
+
+      links.forEach(link => {
+        const itemRef = itemRefs[link.id].current;
+        if (!itemRef) return; // Safeguard against refs not being available yet
+
+        let randomX, randomY;
+        let isOverlapping;
+        let attempts = 0;
+
+        do {
+          // Calculate a random position within a viewable central area, accounting for element size
+          const containerPadding = 350; // Increased padding for more conservative placement
+          const itemWidth = itemRef.offsetWidth;
+          const itemHeight = itemRef.offsetHeight;
+
+          randomX = containerPadding + Math.random() * (containerRect.width - itemWidth - containerPadding * 2);
+          randomY = containerPadding + Math.random() * (containerRect.height - itemHeight - containerPadding * 2);
+
+          // Check for overlap with previously placed items
+          isOverlapping = placedRects.some(pr => {
+            // Updated overlap check to be more robust and include safePadding
+            const horizontalOverlap = (randomX < pr.x + pr.width + safePadding) && (randomX + itemWidth + safePadding > pr.x);
+            const verticalOverlap = (randomY < pr.y + pr.height + safePadding) && (randomY + itemHeight + safePadding > pr.y);
+            return horizontalOverlap && verticalOverlap;
+          });
+          attempts++;
+        } while (isOverlapping && attempts < 100); // Increased attempts for better results
+
+        initialPositions[link.id] = { x: randomX, y: randomY };
+
+        placedRects.push({
+          x: randomX,
+          y: randomY,
+          width: itemRef.offsetWidth,
+          height: itemRef.offsetHeight,
+        });
+      });
+
+      setPositions(initialPositions);
+      // Set loaded to true after positions are calculated
+      setIsLoaded(true);
     }
-  };
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !elementRef.current) return;
-    const newX = e.clientX - offsetRef.current.x;
-    const newY = e.clientY - offsetRef.current.y;
-
-    elementRef.current.style.left = `${newX}px`;
-    elementRef.current.style.top = `${newY}px`;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  return (
-    <div
-      ref={elementRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      className={`absolute ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-      style={{
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
-export default function HomePage() {
   return (
     <main
-      className="flex min-h-screen flex-col items-center justify-between p-24"
+      ref={containerRef}
+      className="flex min-h-screen w-full flex-col relative overflow-hidden"
     >
-      {/* 1. TOP HEADER SECTION */}
-      <div className="z-10 w-full max-w-5xl flex flex-col items-center text-sm lg:flex-col text-center">
-        <Link href="/" className="cursor-pointer no-underline">
-          <h1 className="text-6xl font-bold">Auspidiam</h1>
-        </Link>
-        <div className="mt-2">
-          <Link href="/about" className="hover:underline">about</Link>
-          <span> | </span>
-          <Link href="/audits" className="hover:underline">audits</Link>
-          <span> | </span>
-          <Link href="/analysis" className="hover:underline">analysis</Link>
-        </div>
+      <div className="fixed top-12 left-12 z-20">
+        <a href="/" className="cursor-pointer no-underline">
+          <h1 className="text-6xl font-bold text-black">AUSPIDIAM</h1>
+        </a>
       </div>
 
-      {/* 2. DRAGGABLE IMAGE & TEXT SECTION */}
-      <div className="flex-grow w-full relative flex items-center justify-center">
-        <div className="absolute text-2xl text-neon-green z-0">:)</div>
-        <Draggable>
-          <Image
-            src="/theyarepooping.jpeg"
-            alt="A descriptive name for the image"
-            width={400}
-            height={400}
-          />
-        </Draggable>
-      </div>
-
-      {/* 3. "ennui renaissance" SECTION */}
-      <div className="z-10 w-full text-center text-xs mt-8">
-        <h2 className="text-xl italic">ennui renaissance</h2>
-      </div>
+      {links.map((link) => (
+        <a
+          key={link.id}
+          href={link.href}
+          ref={itemRefs[link.id]}
+          className={`
+            absolute transition-all duration-200 ease-in-out
+            cursor-pointer
+            ${isDragging === link.id ? 'opacity-80 scale-105 z-30' : 'z-10'}
+            ${isLoaded ? 'opacity-100' : 'opacity-0'}
+          `}
+          style={{
+            transform: `translate(${positions[link.id].x}px, ${positions[link.id].y}px)`,
+          }}
+          onMouseDown={(e) => handleDragStart(e, link.id)}
+          onTouchStart={(e) => handleDragStart(e, link.id)}
+        >
+          {link.text}
+        </a>
+      ))}
     </main>
   );
 }
