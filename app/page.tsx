@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import type { MouseEvent, TouchEvent, RefObject } from 'react';
 
@@ -50,7 +50,6 @@ export default function Home() {
 
   // Function to handle the start of a drag event (for both mouse and touch)
   const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
-    // We only prevent default if we determine it's a drag later
     isDragEventRef.current = false;
     isDraggingRef.current = id;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -63,9 +62,8 @@ export default function Home() {
     const isDragging = isDraggingRef.current;
     if (!isDragging) return;
 
-    // Prevent default on move to stop scrolling and text selection
     e.preventDefault();
-    isDragEventRef.current = true; // Set flag to indicate a drag is in progress
+    isDragEventRef.current = true;
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -89,7 +87,7 @@ export default function Home() {
     }
 
     lastPositionRef.current = { x: clientX, y: clientY };
-  }, [itemRefs]);
+  }, [itemRefs]); // Added itemRefs to handleDragMove dependencies
 
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
@@ -106,7 +104,6 @@ export default function Home() {
           finalY = matrixValues[5];
         }
         
-        // Save the final position to state
         setPositions(prev => ({
           ...prev,
           [isDraggingRef.current as LinkId]: { x: finalX, y: finalY }
@@ -133,9 +130,8 @@ export default function Home() {
     };
   }, [handleDragMove]);
 
-  // Use useLayoutEffect to handle initial random positioning on component mount
-  // This runs synchronously after DOM updates, ensuring element dimensions are available
-  useLayoutEffect(() => {
+  // Use a simple useEffect to handle initial random positioning on component mount
+  useEffect(() => {
     if (containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
       const initialPositions: Partial<Positions> = {};
@@ -180,7 +176,7 @@ export default function Home() {
       setPositions(initialPositions as Positions);
       setIsLoaded(true);
     }
-  }, [itemRefs]);
+  }, []); // Empty dependency array ensures this runs once after the initial render.
 
   return (
     <main
