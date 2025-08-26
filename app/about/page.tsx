@@ -16,7 +16,7 @@ export default function AboutPage() {
       {/* Main content section */}
       <div className="z-10 w-full max-w-2xl text-left mx-auto">
         <p>
-          Auspidiam is a portmanteau of auspidicous and diamond, which is the english translation of my name. Pronounced oss-pid-ee-um.
+          Auspidiam is a portmanteau of auspicious and diamond, which is the english translation of my name. Pronounced oss-pid-ee-um.
         </p>
         <p className="mt-4">
           A lot of the content here will be nonsensical, but that is okay.
