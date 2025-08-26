@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en" className={k2d.className}>
       <body>
         {children}
-        <footer className="z-10 w-full text-center text-xs">
+        <footer className="z-10 w-full text-xs px-12">
           designed by ཀུན་བཟང་ | 2000 - present
         </footer>
       </body>
