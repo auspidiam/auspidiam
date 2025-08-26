@@ -1,23 +1,12 @@
-/* file: app/globals.css */
+/*
+ * This file is required for a Next.js project with Tailwind CSS.
+ * It's where global styles are defined.
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background-navy: #00004d;
-  --text-neon-green: #39ff14;
-  --text-neon-red: #ff3131;
-}
-
-body {
-  background-color: var(--background-navy);
-  color: var(--text-neon-green);
-}
-
-a {
-  color: var(--text-neon-green);
-}
-
-h2 {
-  font-weight: normal;
-}
+/*
+ * Custom font classes can be added here if needed, but the current setup
+ * uses next/font which handles this automatically.
+ */
