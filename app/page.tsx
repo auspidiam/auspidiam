@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import Link from 'next/link'; // Import the Link component
+import Link from 'next/link';
+import type { MouseEvent, TouchEvent } from 'react'; // Import event types from React
 
 // Define the shape and content of each interactive link
 const links = [
@@ -33,20 +34,20 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Function to handle the start of a drag event (for both mouse and touch)
-  const handleDragStart = (e, id) => {
+  const handleDragStart = (e: MouseEvent | TouchEvent, id: string) => {
     e.preventDefault();
     setIsDragging(id);
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     lastPositionRef.current = { x: clientX, y: clientY };
   };
 
   // Function to handle the drag movement wrapped in useCallback to fix the dependency warning
-  const handleDragMove = useCallback((e) => {
+  const handleDragMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
 
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
     // Calculate the change in position (delta)
     const deltaX = clientX - lastPositionRef.current.x;
@@ -84,7 +85,7 @@ export default function Home() {
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging, handleDragMove]); // Added handleDragMove to dependencies to fix the warning
+  }, [isDragging, handleDragMove]);
 
   // Effect to handle initial random positioning on component mount
   useEffect(() => {
