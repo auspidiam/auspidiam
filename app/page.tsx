@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import Link from 'next/link'; // Import the Link component
 
 // Define the shape and content of each interactive link
 const links = [
@@ -66,7 +67,7 @@ export default function Home() {
 
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
-      setIsDragging(null);
+    setIsDragging(null);
   };
 
   // Effect to set up event listeners for dragging
@@ -142,13 +143,13 @@ export default function Home() {
       className="flex min-h-screen w-full flex-col relative overflow-hidden"
     >
       <div className="fixed top-12 left-12 z-20">
-        <a href="/" className="cursor-pointer no-underline">
+        <Link href="/" className="cursor-pointer no-underline">
           <h1 className="text-6xl font-bold text-black">AUSPIDIAM</h1>
-        </a>
+        </Link>
       </div>
 
       {links.map((link) => (
-        <a
+        <Link
           key={link.id}
           href={link.href}
           ref={itemRefs[link.id]}
@@ -165,7 +166,7 @@ export default function Home() {
           onTouchStart={(e) => handleDragStart(e, link.id)}
         >
           {link.text}
-        </a>
+        </Link>
       ))}
     </main>
   );
