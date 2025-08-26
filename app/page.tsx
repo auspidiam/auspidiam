@@ -108,8 +108,9 @@ export default function Home() {
         const itemRef = itemRefs[link.id].current;
         if (!itemRef) return;
 
-        let randomX, randomY;
-        let isOverlapping;
+        let randomX: number;
+        let randomY: number;
+        let isOverlapping: boolean;
         let attempts = 0;
 
         do {
