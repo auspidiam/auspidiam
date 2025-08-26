@@ -35,6 +35,8 @@ export default function Home() {
   const isDraggingRef = useRef<LinkId | null>(null);
   // Ref to store the last known mouse/touch position for smooth dragging
   const lastPositionRef = useRef({ x: 0, y: 0 });
+  // Ref to track the element's current position during a drag
+  const currentPositionRef = useRef<Position>({ x: 0, y: 0 });
   // Ref to track if a drag has occurred (to differentiate from a click)
   const isDragEventRef = useRef(false);
 
@@ -55,6 +57,9 @@ export default function Home() {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     lastPositionRef.current = { x: clientX, y: clientY };
+    
+    // Store the initial position of the element for the drag
+    currentPositionRef.current = { ...positions[id] };
   };
 
   // Function to handle the drag movement wrapped in useCallback
@@ -71,44 +76,30 @@ export default function Home() {
     const deltaX = clientX - lastPositionRef.current.x;
     const deltaY = clientY - lastPositionRef.current.y;
 
+    // Update the current position reference
+    currentPositionRef.current.x += deltaX;
+    currentPositionRef.current.y += deltaY;
+
+    // Directly apply the transform to the element for smooth dragging
     const itemRef = itemRefs[isDragging].current;
     if (itemRef) {
-      const currentTransform = itemRef.style.transform;
-      const matrixMatch = currentTransform.match(/matrix.*\((.+)\)/);
-      let currentX = 0;
-      let currentY = 0;
-      if (matrixMatch) {
-        const matrixValues = matrixMatch[1].split(',').map(Number);
-        currentX = matrixValues[4];
-        currentY = matrixValues[5];
-      }
-
-      itemRef.style.transform = `translate(${currentX + deltaX}px, ${currentY + deltaY}px)`;
+      itemRef.style.transform = `translate(${currentPositionRef.current.x}px, ${currentPositionRef.current.y}px)`;
     }
 
     lastPositionRef.current = { x: clientX, y: clientY };
-  }, [itemRefs]); // Added itemRefs to handleDragMove dependencies
+  }, [itemRefs]);
 
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
     if (isDraggingRef.current) {
-      const itemRef = itemRefs[isDraggingRef.current].current;
-      if (itemRef) {
-        const currentTransform = itemRef.style.transform;
-        const matrixMatch = currentTransform.match(/matrix.*\((.+)\)/);
-        let finalX = 0;
-        let finalY = 0;
-        if (matrixMatch) {
-          const matrixValues = matrixMatch[1].split(',').map(Number);
-          finalX = matrixValues[4];
-          finalY = matrixValues[5];
+      // Save the final position to state from the reference
+      setPositions(prev => ({
+        ...prev,
+        [isDraggingRef.current as LinkId]: { 
+          x: currentPositionRef.current.x, 
+          y: currentPositionRef.current.y 
         }
-        
-        setPositions(prev => ({
-          ...prev,
-          [isDraggingRef.current as LinkId]: { x: finalX, y: finalY }
-        }));
-      }
+      }));
     }
 
     isDraggingRef.current = null;
@@ -176,7 +167,7 @@ export default function Home() {
       setPositions(initialPositions as Positions);
       setIsLoaded(true);
     }
-  }, []); // Empty dependency array ensures this runs once after the initial render.
+  }, []);
 
   return (
     <main
