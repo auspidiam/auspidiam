@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link'; // Import the Link component
 
 export default function AboutPage() {
   return (
@@ -8,9 +9,9 @@ export default function AboutPage() {
       {/* Header */}
       <div className="z-10 w-full max-w-5xl flex flex-col items-start text-sm lg:flex-col">
         {/* Main title link to homepage */}
-        <a href="/" className="cursor-pointer no-underline">
+        <Link href="/" className="cursor-pointer no-underline">
           <h1 className="text-6xl font-bold">AUSPIDIAM<span className="font-normal text-4xl">.about</span></h1>
-        </a>
+        </Link>
       </div>
 
       {/* Main content section */}
