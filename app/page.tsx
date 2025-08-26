@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import type { MouseEvent, TouchEvent } from 'react'; // Import event types from React
+import type { MouseEvent, TouchEvent } from 'react';
 
 // Define the shape and content of each interactive link
 const links = [
@@ -20,7 +20,8 @@ export default function Home() {
   });
 
   // State to track which element is being dragged
-  const [isDragging, setIsDragging] = useState(null);
+  // The type is explicitly defined as string | null
+  const [isDragging, setIsDragging] = useState<string | null>(null);
   // Ref to store the last known mouse/touch position for smooth dragging
   const lastPositionRef = useRef({ x: 0, y: 0 });
   // Ref to measure the container and each draggable element
@@ -42,7 +43,7 @@ export default function Home() {
     lastPositionRef.current = { x: clientX, y: clientY };
   };
 
-  // Function to handle the drag movement wrapped in useCallback to fix the dependency warning
+  // Function to handle the drag movement wrapped in useCallback
   const handleDragMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
     if (!isDragging || !containerRef.current) return;
 
@@ -136,7 +137,7 @@ export default function Home() {
       // Set loaded to true after positions are calculated
       setIsLoaded(true);
     }
-  }, [itemRefs]); // Added itemRefs to dependencies to fix the warning
+  }, [itemRefs]);
 
   return (
     <main
