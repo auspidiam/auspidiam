@@ -4,29 +4,40 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import type { MouseEvent, TouchEvent } from 'react';
 
+// Define the types for the link IDs and positions
+type LinkId = 'about' | 'audits' | 'analysis';
+
+type Position = {
+  x: number;
+  y: number;
+};
+
+type Positions = {
+  [key in LinkId]: Position;
+};
+
 // Define the shape and content of each interactive link
-const links = [
+const links: { id: LinkId; text: string; href: string }[] = [
   { id: 'about', text: 'about', href: '/about' },
   { id: 'audits', text: 'audits', href: '/audits' },
   { id: 'analysis', text: 'analysis', href: '/analysis' },
 ];
 
 export default function Home() {
-  // State to hold the position of each element
-  const [positions, setPositions] = useState({
+  // State to hold the position of each element, with a defined type
+  const [positions, setPositions] = useState<Positions>({
     about: { x: 0, y: 0 },
     audits: { x: 0, y: 0 },
     analysis: { x: 0, y: 0 },
   });
 
-  // State to track which element is being dragged
-  // The type is explicitly defined as string | null
-  const [isDragging, setIsDragging] = useState<string | null>(null);
+  // State to track which element is being dragged, with a defined type
+  const [isDragging, setIsDragging] = useState<LinkId | null>(null);
   // Ref to store the last known mouse/touch position for smooth dragging
   const lastPositionRef = useRef({ x: 0, y: 0 });
   // Ref to measure the container and each draggable element
-  const containerRef = useRef(null);
-  const itemRefs = {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs: { [key in LinkId]: React.RefObject<HTMLAnchorElement> } = {
     about: useRef(null),
     audits: useRef(null),
     analysis: useRef(null),
@@ -35,7 +46,7 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Function to handle the start of a drag event (for both mouse and touch)
-  const handleDragStart = (e: MouseEvent | TouchEvent, id: string) => {
+  const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
     e.preventDefault();
     setIsDragging(id);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -45,7 +56,8 @@ export default function Home() {
 
   // Function to handle the drag movement wrapped in useCallback
   const handleDragMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
-    if (!isDragging || !containerRef.current) return;
+    // Type guard: Check if isDragging is not null and is a valid LinkId
+    if (!isDragging) return;
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -55,13 +67,15 @@ export default function Home() {
     const deltaY = clientY - lastPositionRef.current.y;
 
     // Update positions based on the delta
-    setPositions(prevPositions => ({
-      ...prevPositions,
-      [isDragging]: {
-        x: prevPositions[isDragging].x + deltaX,
-        y: prevPositions[isDragging].y + deltaY,
-      },
-    }));
+    setPositions(prevPositions => {
+      // Create a temporary copy to update
+      const newPositions = { ...prevPositions };
+      newPositions[isDragging] = {
+        x: newPositions[isDragging].x + deltaX,
+        y: newPositions[isDragging].y + deltaY,
+      };
+      return newPositions;
+    });
 
     // Update the last position for the next movement calculation
     lastPositionRef.current = { x: clientX, y: clientY };
@@ -86,14 +100,14 @@ export default function Home() {
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging, handleDragMove]);
+  }, [handleDragMove]);
 
   // Effect to handle initial random positioning on component mount
   useEffect(() => {
     if (containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
-      const initialPositions = {};
-      const placedRects = [];
+      const initialPositions: Partial<Positions> = {};
+      const placedRects: { x: number; y: number; width: number; height: number }[] = [];
       const safePadding = 50; // Extra spacing between elements
 
       links.forEach(link => {
@@ -105,23 +119,20 @@ export default function Home() {
         let attempts = 0;
 
         do {
-          // Calculate a random position within a viewable central area, accounting for element size
-          const containerPadding = 350; // Increased padding for more conservative placement
+          const containerPadding = 350;
           const itemWidth = itemRef.offsetWidth;
           const itemHeight = itemRef.offsetHeight;
 
           randomX = containerPadding + Math.random() * (containerRect.width - itemWidth - containerPadding * 2);
           randomY = containerPadding + Math.random() * (containerRect.height - itemHeight - containerPadding * 2);
 
-          // Check for overlap with previously placed items
           isOverlapping = placedRects.some(pr => {
-            // Updated overlap check to be more robust and include safePadding
             const horizontalOverlap = (randomX < pr.x + pr.width + safePadding) && (randomX + itemWidth + safePadding > pr.x);
             const verticalOverlap = (randomY < pr.y + pr.height + safePadding) && (randomY + itemHeight + safePadding > pr.y);
             return horizontalOverlap && verticalOverlap;
           });
           attempts++;
-        } while (isOverlapping && attempts < 100); // Increased attempts for better results
+        } while (isOverlapping && attempts < 100);
 
         initialPositions[link.id] = { x: randomX, y: randomY };
 
@@ -133,8 +144,7 @@ export default function Home() {
         });
       });
 
-      setPositions(initialPositions);
-      // Set loaded to true after positions are calculated
+      setPositions(initialPositions as Positions);
       setIsLoaded(true);
     }
   }, [itemRefs]);
