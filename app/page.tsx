@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 // Define the shape and content of each interactive link
 const links = [
@@ -40,8 +40,8 @@ export default function Home() {
     lastPositionRef.current = { x: clientX, y: clientY };
   };
 
-  // Function to handle the drag movement
-  const handleDragMove = (e) => {
+  // Function to handle the drag movement wrapped in useCallback to fix the dependency warning
+  const handleDragMove = useCallback((e) => {
     if (!isDragging || !containerRef.current) return;
 
     const clientX = e.clientX || e.touches[0].clientX;
@@ -62,7 +62,7 @@ export default function Home() {
 
     // Update the last position for the next movement calculation
     lastPositionRef.current = { x: clientX, y: clientY };
-  };
+  }, [isDragging]);
 
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
@@ -78,13 +78,12 @@ export default function Home() {
 
     // Clean up event listeners on component unmount
     return () => {
-      // Fix for the incorrect cleanup function call.
       window.removeEventListener('mousemove', handleDragMove);
       window.removeEventListener('mouseup', handleDragEnd);
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging]);
+  }, [isDragging, handleDragMove]); // Added handleDragMove to dependencies to fix the warning
 
   // Effect to handle initial random positioning on component mount
   useEffect(() => {
@@ -135,7 +134,7 @@ export default function Home() {
       // Set loaded to true after positions are calculated
       setIsLoaded(true);
     }
-  }, []);
+  }, [itemRefs]); // Added itemRefs to dependencies to fix the warning
 
   return (
     <main
