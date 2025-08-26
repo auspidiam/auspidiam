@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import type { MouseEvent, TouchEvent, RefObject } from 'react';
 
@@ -133,60 +133,54 @@ export default function Home() {
     };
   }, [handleDragMove]);
 
-  // Effect to handle initial random positioning on component mount
-  useEffect(() => {
-    const handleInitialPosition = () => {
-      if (containerRef.current) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const initialPositions: Partial<Positions> = {};
-        const placedRects: { x: number; y: number; width: number; height: number }[] = [];
-        const safePadding = 50;
+  // Use useLayoutEffect to handle initial random positioning on component mount
+  // This runs synchronously after DOM updates, ensuring element dimensions are available
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const initialPositions: Partial<Positions> = {};
+      const placedRects: { x: number; y: number; width: number; height: number }[] = [];
+      const safePadding = 50;
 
-        links.forEach(link => {
-          const itemRef = itemRefs[link.id].current;
-          if (!itemRef) return;
+      links.forEach(link => {
+        const itemRef = itemRefs[link.id].current;
+        if (!itemRef) return;
 
-          let randomX: number;
-          let randomY: number;
-          let isOverlapping: boolean;
-          let attempts = 0;
+        let randomX: number;
+        let randomY: number;
+        let isOverlapping: boolean;
+        let attempts = 0;
 
-          do {
-            const containerPadding = 350;
-            const itemWidth = itemRef.offsetWidth;
-            const itemHeight = itemRef.offsetHeight;
+        do {
+          const containerPadding = 350;
+          const itemWidth = itemRef.offsetWidth;
+          const itemHeight = itemRef.offsetHeight;
 
-            randomX = containerPadding + Math.random() * (containerRect.width - itemWidth - containerPadding * 2);
-            randomY = containerPadding + Math.random() * (containerRect.height - itemHeight - containerPadding * 2);
+          randomX = containerPadding + Math.random() * (containerRect.width - itemWidth - containerPadding * 2);
+          randomY = containerPadding + Math.random() * (containerRect.height - itemHeight - containerPadding * 2);
 
-            isOverlapping = placedRects.some(pr => {
-              const horizontalOverlap = (randomX < pr.x + pr.width + safePadding) && (randomX + itemWidth + safePadding > pr.x);
-              const verticalOverlap = (randomY < pr.y + pr.height + safePadding) && (randomY + itemHeight + safePadding > pr.y);
-              return horizontalOverlap && verticalOverlap;
-            });
-            attempts++;
-          } while (isOverlapping && attempts < 100);
-
-          initialPositions[link.id] = { x: randomX, y: randomY };
-
-          placedRects.push({
-            x: randomX,
-            y: randomY,
-            width: itemRef.offsetWidth,
-            height: itemRef.offsetHeight,
+          isOverlapping = placedRects.some(pr => {
+            const horizontalOverlap = (randomX < pr.x + pr.width + safePadding) && (randomX + itemWidth + safePadding > pr.x);
+            const verticalOverlap = (randomY < pr.y + pr.height + safePadding) && (randomY + itemHeight + safePadding > pr.y);
+            return horizontalOverlap && verticalOverlap;
           });
+          attempts++;
+        } while (isOverlapping && attempts < 100);
+
+        initialPositions[link.id] = { x: randomX, y: randomY };
+
+        placedRects.push({
+          x: randomX,
+          y: randomY,
+          width: itemRef.offsetWidth,
+          height: itemRef.offsetHeight,
         });
+      });
 
-        setPositions(initialPositions as Positions);
-        setIsLoaded(true);
-      }
-    };
-    
-    // Run initial position logic after the component has rendered
-    const timeoutId = setTimeout(handleInitialPosition, 0);
-
-    return () => clearTimeout(timeoutId);
-  }, [itemRefs]); // Dependency array to trigger on ref assignment
+      setPositions(initialPositions as Positions);
+      setIsLoaded(true);
+    }
+  }, [itemRefs]);
 
   return (
     <main
@@ -216,7 +210,6 @@ export default function Home() {
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
           onClick={(e) => {
-            // Prevent link navigation if a drag has occurred
             if (isDragEventRef.current) {
               e.preventDefault();
             }
