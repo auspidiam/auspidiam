@@ -1,25 +1,22 @@
-// file: app/about/page.tsx
-import Link from 'next/link';
+"use client";
+
+import React from 'react';
 
 export default function AboutPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start p-24 text-center gap-12">
-      <div className="z-10 w-full max-w-5xl flex flex-col items-center text-sm lg:flex-col text-center">
-        <Link href="/" className="cursor-pointer no-underline">
-          <h1 className="text-6xl font-bold">Auspidiam</h1>
-        </Link>
-        <div>
-          <Link href="/about" className="font-bold hover:underline" style={{ color: 'var(--text-neon-red)' }}>about</Link>
-          <span> | </span>
-          <Link href="/audits" className="hover:underline">audits</Link>
-          <span> | </span>
-          <Link href="/analysis" className="hover:underline">analysis</Link>
-        </div>
+    <main className="flex min-h-screen flex-col items-start justify-start p-12 gap-12">
+      {/* Header */}
+      <div className="z-10 w-full max-w-5xl flex flex-col items-start text-sm lg:flex-col">
+        {/* Main title link to homepage */}
+        <a href="/" className="cursor-pointer no-underline">
+          <h1 className="text-6xl font-bold">AUSPIDIAM<span className="font-normal text-4xl">.about</span></h1>
+        </a>
       </div>
 
+      {/* Main content section */}
       <div className="z-10 w-full max-w-2xl text-left mx-auto">
         <p>
-          It is a portmanteau of auspicious and diamond, which is the english translation of my name. Pronounced oss-pid-ee-um.
+          Auspidiam is a portmanteau of auspidicous and diamond, which is the english translation of my name. Pronounced oss-pid-ee-um.
         </p>
         <p className="mt-4">
           A lot of the content here will be nonsensical, but that is okay.
