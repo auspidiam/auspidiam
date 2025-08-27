@@ -52,6 +52,9 @@ export default function Home() {
 
   // Function to handle the start of a drag event (for both mouse and touch)
   const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
+    // This is the critical line: prevents the browser's native drag-and-drop
+    e.preventDefault();
+
     isDragEventRef.current = false;
     isDraggingRef.current = id;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -73,7 +76,8 @@ export default function Home() {
     const isDragging = isDraggingRef.current;
     if (!isDragging) return;
 
-    e.preventDefault();
+    // This is no longer needed here as it's handled in handleDragStart
+    // e.preventDefault();
     isDragEventRef.current = true;
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
