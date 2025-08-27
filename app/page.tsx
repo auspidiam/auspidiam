@@ -45,9 +45,9 @@ export default function Home() {
 
   // Refs for DOM elements
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const circleRef = useRef<HTMLDivElement | null>(null);
-  // FIX: Updated the type to HTMLDivElement to match the JSX
-  const itemRefs: { [key in LinkId]: RefObject<HTMLDivElement | null> } = {
+  const dropzoneRef = useRef<HTMLDivElement | null>(null);
+  // FIX: Updated the ref type back to HTMLAnchorElement
+  const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
     about: useRef(null),
     audits: useRef(null),
     analysis: useRef(null),
@@ -103,31 +103,24 @@ export default function Home() {
     const isDragging = isDraggingRef.current;
     if (isDragging && initialPositionRef.current) {
       const itemRef = itemRefs[isDragging].current;
-      const circleRefCurrent = circleRef.current;
+      const dropzoneRefCurrent = dropzoneRef.current;
 
-      let droppedInCircle = false;
-      if (itemRef && circleRefCurrent) {
+      let droppedInDropzone = false;
+      if (itemRef && dropzoneRefCurrent) {
         // Re-enable CSS transitions
         itemRef.style.transition = 'all 200ms ease-in-out';
 
         const itemRect = itemRef.getBoundingClientRect();
-        const circleRect = circleRefCurrent.getBoundingClientRect();
+        const dropzoneRect = dropzoneRefCurrent.getBoundingClientRect();
 
-        // Check for collision: is the center of the link inside the circle?
-        const itemCenterX = itemRect.left + itemRect.width / 2;
-        const itemCenterY = itemRect.top + itemRect.height / 2;
-        
-        const circleCenterX = circleRect.left + circleRect.width / 2;
-        const circleCenterY = circleRect.top + circleRect.height / 2;
-        const circleRadius = circleRect.width / 2;
-
-        const distance = Math.sqrt(
-          Math.pow(itemCenterX - circleCenterX, 2) + Math.pow(itemCenterY - circleCenterY, 2)
-        );
-
-        if (distance <= circleRadius) {
-          droppedInCircle = true;
-          // Collision detected: navigate to the page
+        // Check for collision using a simple bounding box check
+        if (
+          itemRect.left >= dropzoneRect.left &&
+          itemRect.right <= dropzoneRect.right &&
+          itemRect.top >= dropzoneRect.top &&
+          itemRect.bottom <= dropzoneRect.bottom
+        ) {
+          droppedInDropzone = true;
           const linkHref = links.find(link => link.id === isDragging)?.href;
           if (linkHref) {
             router.push(linkHref);
@@ -135,8 +128,8 @@ export default function Home() {
         }
       }
       
-      // If dropped outside the circle, snap it back to its original position
-      if (!droppedInCircle) {
+      // If dropped outside the drop zone, snap it back to its original position
+      if (!droppedInDropzone) {
         setPositions(prev => ({
           ...prev,
           [isDragging as LinkId]: initialPositionRef.current as Position,
@@ -173,19 +166,18 @@ export default function Home() {
         analysis: { x: 0, y: 0 },
       };
 
-      // Define an orbit radius around the center circle
+      // Define an orbit radius around the center drop zone
       const orbitRadius = 300; 
 
       // Calculate center coordinates
       const centerX = containerRect.width / 2;
       const centerY = containerRect.height / 2;
 
-      // Position links around the circle
+      // Position links around the drop zone
       const angleStep = (2 * Math.PI) / links.length;
       links.forEach((link, index) => {
         const angle = angleStep * index;
         newPositions[link.id] = {
-          // Calculate positions relative to the top-left of the container
           x: centerX + orbitRadius * Math.cos(angle),
           y: centerY + orbitRadius * Math.sin(angle),
         };
@@ -207,12 +199,12 @@ export default function Home() {
         </Link>
       </div>
       
-      {/* Container for the central drop zone circle */}
+      {/* Container for the central drop zone square */}
       <div className="absolute inset-0 flex justify-center items-center">
         <div 
-          ref={circleRef}
+          ref={dropzoneRef}
           className="
-            w-64 h-64 rounded-full
+            w-64 h-64 rounded-none
             border-2 border-black
             bg-gray-200/50
           "
@@ -220,8 +212,9 @@ export default function Home() {
       </div>
 
       {links.map((link) => (
-        <div
+        <Link
           key={link.id}
+          href={link.href}
           ref={itemRefs[link.id]}
           className={`
             absolute
@@ -235,9 +228,15 @@ export default function Home() {
           }}
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
+          onClick={(e) => {
+            // Prevent navigation if the user is dragging
+            if (isDraggingRef.current) {
+              e.preventDefault();
+            }
+          }}
         >
           {link.text}
-        </div>
+        </Link>
       ))}
     </main>
   );
