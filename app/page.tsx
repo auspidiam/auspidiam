@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { MouseEvent, TouchEvent, RefObject } from 'react';
 
@@ -24,6 +25,8 @@ const links: { id: LinkId; text: string; href: string }[] = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+
   // State to hold the final, saved position of each element
   const [positions, setPositions] = useState<Positions>({
     about: { x: 0, y: 0 },
@@ -37,30 +40,27 @@ export default function Home() {
   const lastPositionRef = useRef({ x: 0, y: 0 });
   // Ref to track the element's current position during a drag
   const currentPositionRef = useRef<Position>({ x: 0, y: 0 });
-  // Ref to track if a drag has occurred (to differentiate from a click)
-  const isDragEventRef = useRef(false);
 
-  // Refs to measure the container and each draggable element
+  // Refs to measure the container, circle and each draggable element
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const circleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
     about: useRef(null),
     audits: useRef(null),
     analysis: useRef(null),
   };
-  // New state to control visibility after positions are calculated
+
+  // State to control visibility after initial positioning
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Function to handle the start of a drag event (for both mouse and touch)
+  // Function to handle the start of a drag event
   const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
-    // This is the critical line: prevents the browser's native drag-and-drop
     e.preventDefault();
-
-    isDragEventRef.current = false;
     isDraggingRef.current = id;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     lastPositionRef.current = { x: clientX, y: clientY };
-    
+
     // Store the initial position of the element for the drag
     currentPositionRef.current = { ...positions[id] };
     
@@ -71,14 +71,10 @@ export default function Home() {
     }
   };
 
-  // Function to handle the drag movement wrapped in useCallback
+  // Function to handle the drag movement
   const handleDragMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
     const isDragging = isDraggingRef.current;
     if (!isDragging) return;
-
-    // This is no longer needed here as it's handled in handleDragStart
-    // e.preventDefault();
-    isDragEventRef.current = true;
 
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -86,11 +82,9 @@ export default function Home() {
     const deltaX = clientX - lastPositionRef.current.x;
     const deltaY = clientY - lastPositionRef.current.y;
 
-    // Update the current position reference
     currentPositionRef.current.x += deltaX;
     currentPositionRef.current.y += deltaY;
 
-    // Directly apply the transform to the element for smooth dragging
     const itemRef = itemRefs[isDragging].current;
     if (itemRef) {
       itemRef.style.transform = `translate(${currentPositionRef.current.x}px, ${currentPositionRef.current.y}px)`;
@@ -104,23 +98,47 @@ export default function Home() {
     const isDragging = isDraggingRef.current;
     if (isDragging) {
       const itemRef = itemRefs[isDragging].current;
-      if (itemRef) {
+      const circleRefCurrent = circleRef.current;
+
+      if (itemRef && circleRefCurrent) {
         // Re-enable CSS transitions
         itemRef.style.transition = 'all 200ms ease-in-out';
+
+        const itemRect = itemRef.getBoundingClientRect();
+        const circleRect = circleRefCurrent.getBoundingClientRect();
+
+        // Check for collision: is the center of the link inside the circle?
+        const itemCenterX = itemRect.left + itemRect.width / 2;
+        const itemCenterY = itemRect.top + itemRect.height / 2;
+        
+        const circleCenterX = circleRect.left + circleRect.width / 2;
+        const circleCenterY = circleRect.top + circleRect.height / 2;
+        const circleRadius = circleRect.width / 2;
+
+        const distance = Math.sqrt(
+          Math.pow(itemCenterX - circleCenterX, 2) + Math.pow(itemCenterY - circleCenterY, 2)
+        );
+
+        if (distance <= circleRadius) {
+          // Collision detected: navigate to the page
+          const linkHref = links.find(link => link.id === isDragging)?.href;
+          if (linkHref) {
+            router.push(linkHref);
+          }
+        }
       }
       
-      // Save the final position to state from the reference
+      // Snap the link back to its original position
       setPositions(prev => ({
         ...prev,
         [isDragging as LinkId]: { 
-          x: currentPositionRef.current.x, 
-          y: currentPositionRef.current.y 
+          x: prev[isDragging as LinkId].x, 
+          y: prev[isDragging as LinkId].y 
         }
       }));
     }
 
     isDraggingRef.current = null;
-    isDragEventRef.current = false;
   };
 
   // Effect to set up event listeners for dragging
@@ -138,50 +156,34 @@ export default function Home() {
     };
   }, [handleDragMove]);
 
-  // Use a simple useEffect to handle initial random positioning on component mount
+  // Initial positioning logic
   useEffect(() => {
     if (containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
-      const initialPositions: Partial<Positions> = {};
-      const placedRects: { x: number; y: number; width: number; height: number }[] = [];
-      const safePadding = 50;
+      const newPositions: Positions = {
+        about: { x: 0, y: 0 },
+        audits: { x: 0, y: 0 },
+        analysis: { x: 0, y: 0 },
+      };
 
-      links.forEach(link => {
-        const itemRef = itemRefs[link.id].current;
-        if (!itemRef) return;
+      // Define an orbit radius around the center circle
+      const orbitRadius = 300; 
 
-        let randomX: number;
-        let randomY: number;
-        let isOverlapping: boolean;
-        let attempts = 0;
+      // Calculate center coordinates
+      const centerX = containerRect.width / 2;
+      const centerY = containerRect.height / 2;
 
-        do {
-          const containerPadding = 350;
-          const itemWidth = itemRef.offsetWidth;
-          const itemHeight = itemRef.offsetHeight;
-
-          randomX = containerPadding + Math.random() * (containerRect.width - itemWidth - containerPadding * 2);
-          randomY = containerPadding + Math.random() * (containerRect.height - itemHeight - containerPadding * 2);
-
-          isOverlapping = placedRects.some(pr => {
-            const horizontalOverlap = (randomX < pr.x + pr.width + safePadding) && (randomX + itemWidth + safePadding > pr.x);
-            const verticalOverlap = (randomY < pr.y + pr.height + safePadding) && (randomY + itemHeight + safePadding > pr.y);
-            return horizontalOverlap && verticalOverlap;
-          });
-          attempts++;
-        } while (isOverlapping && attempts < 100);
-
-        initialPositions[link.id] = { x: randomX, y: randomY };
-
-        placedRects.push({
-          x: randomX,
-          y: randomY,
-          width: itemRef.offsetWidth,
-          height: itemRef.offsetHeight,
-        });
+      // Position links around the circle
+      const angleStep = (2 * Math.PI) / links.length;
+      links.forEach((link, index) => {
+        const angle = angleStep * index;
+        newPositions[link.id] = {
+          x: centerX + orbitRadius * Math.cos(angle),
+          y: centerY + orbitRadius * Math.sin(angle),
+        };
       });
 
-      setPositions(initialPositions as Positions);
+      setPositions(newPositions);
       setIsLoaded(true);
     }
   }, []);
@@ -196,6 +198,17 @@ export default function Home() {
           <h1 className="text-6xl font-bold text-black">AUSPIDIAM</h1>
         </Link>
       </div>
+      
+      {/* The central drop zone circle */}
+      <div 
+        ref={circleRef}
+        className="
+          absolute inset-0 m-auto
+          w-64 h-64 rounded-full
+          border-2 border-black
+          bg-gray-200/50
+        "
+      ></div>
 
       {links.map((link) => (
         <Link
@@ -205,16 +218,19 @@ export default function Home() {
           className={`
             absolute
             cursor-pointer select-none
+            -translate-x-1/2 -translate-y-1/2
             ${isDraggingRef.current === link.id ? 'opacity-80 scale-105 z-30' : 'z-10'}
             ${isLoaded ? 'opacity-100' : 'opacity-0'}
           `}
           style={{
-            transform: `translate(${positions[link.id].x}px, ${positions[link.id].y}px)`,
+            left: `${positions[link.id].x}px`,
+            top: `${positions[link.id].y}px`,
           }}
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
           onClick={(e) => {
-            if (isDragEventRef.current) {
+            // Prevent navigation if the user is dragging
+            if (isDraggingRef.current) {
               e.preventDefault();
             }
           }}
