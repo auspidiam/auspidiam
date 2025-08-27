@@ -60,6 +60,12 @@ export default function Home() {
     
     // Store the initial position of the element for the drag
     currentPositionRef.current = { ...positions[id] };
+    
+    // Disable CSS transitions during drag for immediate feedback
+    const itemRef = itemRefs[id].current;
+    if (itemRef) {
+      itemRef.style.transition = 'none';
+    }
   };
 
   // Function to handle the drag movement wrapped in useCallback
@@ -91,11 +97,18 @@ export default function Home() {
 
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
-    if (isDraggingRef.current) {
+    const isDragging = isDraggingRef.current;
+    if (isDragging) {
+      const itemRef = itemRefs[isDragging].current;
+      if (itemRef) {
+        // Re-enable CSS transitions
+        itemRef.style.transition = 'all 200ms ease-in-out';
+      }
+      
       // Save the final position to state from the reference
       setPositions(prev => ({
         ...prev,
-        [isDraggingRef.current as LinkId]: { 
+        [isDragging as LinkId]: { 
           x: currentPositionRef.current.x, 
           y: currentPositionRef.current.y 
         }
@@ -186,7 +199,7 @@ export default function Home() {
           href={link.href}
           ref={itemRefs[link.id]}
           className={`
-            absolute transition-all duration-200 ease-in-out
+            absolute
             cursor-pointer select-none
             ${isDraggingRef.current === link.id ? 'opacity-80 scale-105 z-30' : 'z-10'}
             ${isLoaded ? 'opacity-100' : 'opacity-0'}
