@@ -46,7 +46,6 @@ export default function Home() {
   // Refs for DOM elements
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dropzoneRef = useRef<HTMLDivElement | null>(null);
-  // Ref type is HTMLAnchorElement to match the <Link> component
   const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
     about: useRef(null),
     audits: useRef(null),
@@ -60,7 +59,6 @@ export default function Home() {
   const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
     e.preventDefault();
 
-    // CRITICAL FIX: Ensure the item ref is available before proceeding
     const itemRef = itemRefs[id].current;
     if (!itemRef) return;
     
@@ -69,11 +67,9 @@ export default function Home() {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     lastPositionRef.current = { x: clientX, y: clientY };
 
-    // Store the initial position of the element for the drag
     currentPositionRef.current = { ...positions[id] };
     initialPositionRef.current = { ...positions[id] };
     
-    // Disable CSS transitions during drag for immediate feedback
     itemRef.style.transition = 'none';
   };
 
@@ -82,7 +78,6 @@ export default function Home() {
     const isDragging = isDraggingRef.current;
     if (!isDragging) return;
 
-    // CRITICAL FIX: Ensure the item ref is available before proceeding
     const itemRef = itemRefs[isDragging].current;
     if (!itemRef) return;
 
@@ -95,7 +90,6 @@ export default function Home() {
     currentPositionRef.current.x += deltaX;
     currentPositionRef.current.y += deltaY;
 
-    // Apply the position via transform to avoid conflicts
     itemRef.style.transform = `translate(${currentPositionRef.current.x}px, ${currentPositionRef.current.y}px)`;
 
     lastPositionRef.current = { x: clientX, y: clientY };
@@ -105,10 +99,8 @@ export default function Home() {
   const handleDragEnd = () => {
     const isDragging = isDraggingRef.current;
     
-    // FIX: Assign to a temporary variable to satisfy the compiler
     const initialPos = initialPositionRef.current;
     
-    // Check if dragging and initial position are valid
     if (!isDragging || !initialPos) {
       return;
     }
@@ -117,14 +109,12 @@ export default function Home() {
     const dropzoneRefCurrent = dropzoneRef.current;
     if (!itemRef || !dropzoneRefCurrent) return;
     
-    // Re-enable CSS transitions
     itemRef.style.transition = 'all 200ms ease-in-out';
 
     const itemRect = itemRef.getBoundingClientRect();
     const dropzoneRect = dropzoneRefCurrent.getBoundingClientRect();
 
     let droppedInDropzone = false;
-    // Check for collision using a simple bounding box check
     if (
       itemRect.left >= dropzoneRect.left &&
       itemRect.right <= dropzoneRect.right &&
@@ -138,7 +128,6 @@ export default function Home() {
       }
     }
     
-    // If dropped outside the drop zone, snap it back to its original position
     if (!droppedInDropzone) {
       setPositions(prev => ({
         ...prev,
@@ -175,14 +164,11 @@ export default function Home() {
         analysis: { x: 0, y: 0 },
       };
 
-      // Define an orbit radius around the center drop zone
       const orbitRadius = 300; 
 
-      // Calculate center coordinates
       const centerX = containerRect.width / 2;
       const centerY = containerRect.height / 2;
 
-      // Position links around the drop zone
       const angleStep = (2 * Math.PI) / links.length;
       links.forEach((link, index) => {
         const angle = angleStep * index;
@@ -212,16 +198,16 @@ export default function Home() {
         ref={dropzoneRef}
         className="
           absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-          w-64 h-64 rounded-none
-          border-2 border-black
-          bg-gray-200/50
+          w-96 h-96 rounded-none
+          border-4 border-black
+          bg-white/30
         "
       ></div>
 
       {links.map((link) => (
         <Link
           key={link.id}
-          href={link.href}
+          // REMOVED href to disable direct navigation
           ref={itemRefs[link.id]}
           className={`
             absolute
@@ -235,12 +221,7 @@ export default function Home() {
           }}
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
-          onClick={(e) => {
-            // Prevent navigation if the user is dragging
-            if (isDraggingRef.current) {
-              e.preventDefault();
-            }
-          }}
+          // REMOVED onClick as it's no longer needed with no href
         >
           {link.text}
         </Link>
