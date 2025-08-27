@@ -34,14 +34,16 @@ export default function Home() {
     analysis: { x: 0, y: 0 },
   });
 
-  // Ref to track which element is being dragged, for performance
+  // Ref to track which element is being dragged
   const isDraggingRef = useRef<LinkId | null>(null);
   // Ref to store the last known mouse/touch position for smooth dragging
   const lastPositionRef = useRef({ x: 0, y: 0 });
   // Ref to track the element's current position during a drag
   const currentPositionRef = useRef<Position>({ x: 0, y: 0 });
+  // Ref to store the initial position of a link when a drag starts
+  const initialPositionRef = useRef<Position | null>(null);
 
-  // Refs to measure the container, circle and each draggable element
+  // Refs for DOM elements
   const containerRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
   const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
@@ -63,6 +65,7 @@ export default function Home() {
 
     // Store the initial position of the element for the drag
     currentPositionRef.current = { ...positions[id] };
+    initialPositionRef.current = { ...positions[id] };
     
     // Disable CSS transitions during drag for immediate feedback
     const itemRef = itemRefs[id].current;
@@ -87,6 +90,7 @@ export default function Home() {
 
     const itemRef = itemRefs[isDragging].current;
     if (itemRef) {
+      // Apply the position via transform to avoid conflicts
       itemRef.style.transform = `translate(${currentPositionRef.current.x}px, ${currentPositionRef.current.y}px)`;
     }
 
@@ -96,10 +100,11 @@ export default function Home() {
   // Function to handle the end of a drag event
   const handleDragEnd = () => {
     const isDragging = isDraggingRef.current;
-    if (isDragging) {
+    if (isDragging && initialPositionRef.current) {
       const itemRef = itemRefs[isDragging].current;
       const circleRefCurrent = circleRef.current;
 
+      let droppedInCircle = false;
       if (itemRef && circleRefCurrent) {
         // Re-enable CSS transitions
         itemRef.style.transition = 'all 200ms ease-in-out';
@@ -120,6 +125,7 @@ export default function Home() {
         );
 
         if (distance <= circleRadius) {
+          droppedInCircle = true;
           // Collision detected: navigate to the page
           const linkHref = links.find(link => link.id === isDragging)?.href;
           if (linkHref) {
@@ -128,17 +134,17 @@ export default function Home() {
         }
       }
       
-      // Snap the link back to its original position
-      setPositions(prev => ({
-        ...prev,
-        [isDragging as LinkId]: { 
-          x: prev[isDragging as LinkId].x, 
-          y: prev[isDragging as LinkId].y 
-        }
-      }));
+      // If dropped outside the circle, snap it back to its original position
+      if (!droppedInCircle) {
+        setPositions(prev => ({
+          ...prev,
+          [isDragging as LinkId]: initialPositionRef.current as Position,
+        }));
+      }
     }
 
     isDraggingRef.current = null;
+    initialPositionRef.current = null;
   };
 
   // Effect to set up event listeners for dragging
@@ -178,6 +184,7 @@ export default function Home() {
       links.forEach((link, index) => {
         const angle = angleStep * index;
         newPositions[link.id] = {
+          // Calculate positions relative to the top-left of the container
           x: centerX + orbitRadius * Math.cos(angle),
           y: centerY + orbitRadius * Math.sin(angle),
         };
@@ -199,21 +206,21 @@ export default function Home() {
         </Link>
       </div>
       
-      {/* The central drop zone circle */}
-      <div 
-        ref={circleRef}
-        className="
-          absolute inset-0 m-auto
-          w-64 h-64 rounded-full
-          border-2 border-black
-          bg-gray-200/50
-        "
-      ></div>
+      {/* Container for the central drop zone circle */}
+      <div className="absolute inset-0 flex justify-center items-center">
+        <div 
+          ref={circleRef}
+          className="
+            w-64 h-64 rounded-full
+            border-2 border-black
+            bg-gray-200/50
+          "
+        ></div>
+      </div>
 
       {links.map((link) => (
-        <Link
+        <div
           key={link.id}
-          href={link.href}
           ref={itemRefs[link.id]}
           className={`
             absolute
@@ -223,20 +230,13 @@ export default function Home() {
             ${isLoaded ? 'opacity-100' : 'opacity-0'}
           `}
           style={{
-            left: `${positions[link.id].x}px`,
-            top: `${positions[link.id].y}px`,
+            transform: `translate(${positions[link.id].x}px, ${positions[link.id].y}px)`,
           }}
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
-          onClick={(e) => {
-            // Prevent navigation if the user is dragging
-            if (isDraggingRef.current) {
-              e.preventDefault();
-            }
-          }}
         >
           {link.text}
-        </Link>
+        </div>
       ))}
     </main>
   );
