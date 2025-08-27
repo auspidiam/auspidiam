@@ -141,17 +141,17 @@ export default function Home() {
 
   // Effect to set up event listeners for dragging
   useEffect(() => {
-    window.addEventListener('mousemove', handleDragMove);
-    window.addEventListener('mouseup', handleDragEnd);
-    window.addEventListener('touchmove', handleDragMove, { passive: false });
-    window.addEventListener('touchend', handleDragEnd);
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleDragMove, { passive: false });
+      window.addEventListener('touchend', handleDragEnd);
 
-    return () => {
-      window.removeEventListener('mousemove', handleDragMove);
-      window.removeEventListener('mouseup', handleDragEnd);
-      window.removeEventListener('touchmove', handleDragMove);
-      window.removeEventListener('touchend', handleDragEnd);
-    };
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleDragMove);
+        window.removeEventListener('touchend', handleDragEnd);
+      };
   }, [handleDragMove]);
 
   // Initial positioning logic
@@ -194,14 +194,19 @@ export default function Home() {
         </Link>
       </div>
       
+      {/* FIX: Use raw CSS for sizing to bypass potential Tailwind issues on Vercel */}
       <div 
         ref={dropzoneRef}
-        className="
-          absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-          w-96 h-96 rounded-none
-          border-4 border-black
-          bg-white/30
-        "
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '300px',
+          height: '300px',
+          border: '4px solid black',
+          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        }}
       ></div>
 
       {links.map((link) => (
@@ -222,8 +227,6 @@ export default function Home() {
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
           onClick={(e) => {
-            // This is the FIX: Always prevent default if the user is not dragging,
-            // which disables a direct click from navigating.
             if (!isDraggingRef.current) {
               e.preventDefault();
             }
