@@ -23,7 +23,7 @@ export default function RootLayout({
       <body>
         {children}
         <footer className="z-10 w-full text-xs px-12 flex justify-between">
-          <span>designed by ཀུན་བཟང་རྡོ་རྗེ་</span>
+          <span>ཀུན་བཟང་རྡོ་རྗེ་</span>
           <span>2000 - present</span>
         </footer>
       </body>
