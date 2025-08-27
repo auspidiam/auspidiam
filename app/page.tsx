@@ -46,7 +46,8 @@ export default function Home() {
   // Refs for DOM elements
   const containerRef = useRef<HTMLDivElement | null>(null);
   const circleRef = useRef<HTMLDivElement | null>(null);
-  const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
+  // FIX: Updated the type to HTMLDivElement to match the JSX
+  const itemRefs: { [key in LinkId]: RefObject<HTMLDivElement | null> } = {
     about: useRef(null),
     audits: useRef(null),
     analysis: useRef(null),
