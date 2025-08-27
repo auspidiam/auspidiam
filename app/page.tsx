@@ -194,7 +194,6 @@ export default function Home() {
         </Link>
       </div>
       
-      {/* FIX: Use raw CSS for sizing to bypass potential Tailwind issues on Vercel */}
       <div 
         ref={dropzoneRef}
         style={{
@@ -202,8 +201,8 @@ export default function Home() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '300px',
-          height: '300px',
+          width: '250px',
+          height: '250px',
           border: '4px solid black',
           backgroundColor: 'rgba(255, 255, 255, 0.3)',
         }}
