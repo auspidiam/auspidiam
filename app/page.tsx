@@ -191,7 +191,7 @@ export default function Home() {
       ref={containerRef}
       className="flex min-h-screen w-full flex-col relative overflow-hidden"
     >
-      <div className="fixed top-12 left-12 z-20">
+      <div className="fixed top-12 left-1/2 -translate-x-1/2 z-20">
         <Link href="/" className="cursor-pointer no-underline">
           <h1 className="text-6xl font-bold text-black">AUSPIDIAM</h1>
         </Link>
