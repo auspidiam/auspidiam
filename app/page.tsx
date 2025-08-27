@@ -207,7 +207,7 @@ export default function Home() {
       {links.map((link) => (
         <Link
           key={link.id}
-          // REMOVED href to disable direct navigation
+          href={link.href}
           ref={itemRefs[link.id]}
           className={`
             absolute
@@ -221,7 +221,13 @@ export default function Home() {
           }}
           onMouseDown={(e) => handleDragStart(e, link.id)}
           onTouchStart={(e) => handleDragStart(e, link.id)}
-          // REMOVED onClick as it's no longer needed with no href
+          onClick={(e) => {
+            // This is the FIX: Always prevent default if the user is not dragging,
+            // which disables a direct click from navigating.
+            if (!isDraggingRef.current) {
+              e.preventDefault();
+            }
+          }}
         >
           {link.text}
         </Link>
