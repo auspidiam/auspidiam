@@ -4,9 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type LinkId = "about" | "audits" | "analysis";
-
 type Position = { x: number; y: number };
-
 type Positions = Record<LinkId, Position>;
 
 const LINKS: { id: LinkId; text: string; href: string }[] = [
@@ -19,66 +17,55 @@ export default function Home() {
   const [positions, setPositions] = useState<Positions | null>(null);
 
   useEffect(() => {
-    // Compute once on mount so it changes per refresh, not during hydration
     if (typeof window === "undefined") return;
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-
-    // Center of viewport
     const cx = vw / 2;
     const cy = vh / 2;
 
-    // Place each link in a ring around the center with gentle randomness
-    // Keep them away from edges and from each other
-    const MIN_R = Math.min(vw, vh) * 0.18; // inner radius
-    const MAX_R = Math.min(vw, vh) * 0.30; // outer radius
-    const MIN_GAP = Math.min(vw, vh) * 0.15; // min distance between labels
+    // Tight ring close to the center
+    const R_MIN = 90;   // px
+    const R_MAX = 140;  // px
+    const MIN_GAP = 110; // px between labels
+    const jitter = Math.PI / 15; // ~±12°
 
-    // Start with evenly spaced base angles, then jitter
-    const baseAngles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
+    // Evenly spaced angles around top (-90°, 150°, 390°==30°)
+    const baseAngles = [
+      -Math.PI / 2,
+      -Math.PI / 2 + (2 * Math.PI) / 3,
+      -Math.PI / 2 + (4 * Math.PI) / 3,
+    ];
 
-    function rand(min: number, max: number) {
-      return Math.random() * (max - min) + min;
-    }
-
-    // Shuffle baseAngles for variety
-    for (let i = baseAngles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [baseAngles[i], baseAngles[j]] = [baseAngles[j], baseAngles[i]];
-    }
+    const rand = (min: number, max: number) => Math.random() * (max - min) + min;
 
     const placed: Position[] = [];
+    const farEnough = (p: Position) =>
+      placed.every((q) => Math.hypot(p.x - q.x, p.y - q.y) >= MIN_GAP);
 
-    function farEnough(p: Position) {
-      return placed.every((q) => {
-        const dx = p.x - q.x;
-        const dy = p.y - q.y;
-        return Math.hypot(dx, dy) >= MIN_GAP;
-      });
-    }
-
-    const results: Positions = { about: { x: cx, y: cy }, audits: { x: cx, y: cy }, analysis: { x: cx, y: cy } };
+    const results: Positions = {
+      about: { x: cx, y: cy },
+      audits: { x: cx, y: cy },
+      analysis: { x: cx, y: cy },
+    };
 
     LINKS.forEach((link, idx) => {
-      let tries = 0;
-      while (tries < 40) {
-        const angle = baseAngles[idx] + rand(-Math.PI / 9, Math.PI / 9); // ~±20° jitter
-        const r = rand(MIN_R, MAX_R);
-        const x = cx + r * Math.cos(angle);
-        const y = cy + r * Math.sin(angle);
-
-        const p = { x, y };
+      let ok = false;
+      for (let tries = 0; tries < 40; tries++) {
+        const angle = baseAngles[idx] + rand(-jitter, jitter);
+        const r = rand(R_MIN, R_MAX);
+        const p = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
         if (farEnough(p)) {
           placed.push(p);
           results[link.id] = p;
+          ok = true;
           break;
         }
-        tries++;
       }
-      // Fallback: if we somehow didn't place due to constraints, just stick it on base angle
-      if (!results[link.id]) {
+      if (!ok) {
+        // Fallback: exact base angle, mid radius
         const angle = baseAngles[idx];
-        const r = (MIN_R + MAX_R) / 2;
+        const r = (R_MIN + R_MAX) / 2;
         results[link.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
       }
     });
@@ -90,10 +77,12 @@ export default function Home() {
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
       {/* Center title */}
       <Link href="/" className="select-none no-underline">
-        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">Auspidiam</h1>
+        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
+          Auspidiam
+        </h1>
       </Link>
 
-      {/* Peripheral links */}
+      {/* The three pages around it */}
       {positions && (
         <div className="pointer-events-none absolute inset-0">
           {LINKS.map((l) => (
@@ -101,7 +90,8 @@ export default function Home() {
               key={l.id}
               href={l.href}
               className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-xl lowercase tracking-wide text-black transition-opacity hover:opacity-70"
-              style={{ left: positions[l.id].x, top: positions[l.id].y }}>
+              style={{ left: positions[l.id].x, top: positions[l.id].y, zIndex: 10 }}
+            >
               {l.text}
             </Link>
           ))}
