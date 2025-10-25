@@ -20,6 +20,7 @@ export default function Home() {
 
   useEffect(() => {
     // Compute once on mount so it changes per refresh, not during hydration
+    if (typeof window === "undefined") return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -56,7 +57,7 @@ export default function Home() {
       });
     }
 
-    const results: Partial<Positions> = {};
+    const results: Positions = { about: { x: cx, y: cy }, audits: { x: cx, y: cy }, analysis: { x: cx, y: cy } };
 
     LINKS.forEach((link, idx) => {
       let tries = 0;
@@ -69,29 +70,27 @@ export default function Home() {
         const p = { x, y };
         if (farEnough(p)) {
           placed.push(p);
-          (results as any)[link.id] = p;
+          results[link.id] = p;
           break;
         }
         tries++;
       }
       // Fallback: if we somehow didn't place due to constraints, just stick it on base angle
-      if (!(results as any)[link.id]) {
+      if (!results[link.id]) {
         const angle = baseAngles[idx];
         const r = (MIN_R + MAX_R) / 2;
-        (results as any)[link.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+        results[link.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
       }
     });
 
-    setPositions(results as Positions);
+    setPositions(results);
   }, []);
 
   return (
-    <main className="relative flex h-dvh w-full items-center justify-center overflow-hidden bg-white">
+    <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
       {/* Center title */}
       <Link href="/" className="select-none no-underline">
-        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
-          AUSPIDIAM
-        </h1>
+        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">Auspidiam</h1>
       </Link>
 
       {/* Peripheral links */}
@@ -102,9 +101,7 @@ export default function Home() {
               key={l.id}
               href={l.href}
               className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-xl lowercase tracking-wide text-black transition-opacity hover:opacity-70"
-              style={{ left: positions[l.id].x, top: positions[l.id].y }}
-              prefetch={false}
-            >
+              style={{ left: positions[l.id].x, top: positions[l.id].y }}>
               {l.text}
             </Link>
           ))}
