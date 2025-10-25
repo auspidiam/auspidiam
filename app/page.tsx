@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type LinkId = "about" | "audits" | "analysis";
 
@@ -17,83 +17,76 @@ const LINKS: { id: LinkId; text: string; href: string }[] = [
 
 export default function Home() {
   const [positions, setPositions] = useState<Positions | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Compute once on mount so it changes per refresh, not during hydration
     if (typeof window === "undefined") return;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
 
-    // Center of viewport
-    const cx = vw / 2;
-    const cy = vh / 2;
+    const compute = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const margin = 16; // keep inside viewport
+      const jitter = 6; // small random wobble in px
 
-    // Place each link in a ring around the center with gentle randomness
-    // Keep them away from edges and from each other
-    const MIN_R = 70; // px – tight inner radius // inner radius
-    const MAX_R = 110; // px – tight outer radius // outer radius
-    const MIN_GAP = 90; // px – keep labels from touching // min distance between labels
+      const rect = titleRef.current?.getBoundingClientRect();
+      if (!rect) return;
 
-    // Start with evenly spaced base angles, then jitter
-    const baseAngles = [
-      -Math.PI / 2,
-      -Math.PI / 2 + (2 * Math.PI) / 3,
-      -Math.PI / 2 + (4 * Math.PI) / 3,
-    ];
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const pad = 24; // distance from title box
 
-    function rand(min: number, max: number) {
-      return Math.random() * (max - min) + min;
-    }
+      // Candidate anchors tight around the title
+      const anchors: Position[] = [
+        // directly above
+        { x: cx, y: rect.top - pad },
+        // above-left
+        { x: rect.left - (rect.width * 0.25 + 50), y: cy - rect.height * 0.25 },
+        // above-right
+        { x: rect.right + (rect.width * 0.25 + 50), y: cy - rect.height * 0.25 },
+      ];
 
-    // Keep fixed order for even spacing around the title
+      // Shuffle anchors for variety per refresh
+      for (let i = anchors.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [anchors[i], anchors[j]] = [anchors[j], anchors[i]];
+      }
 
-    const placed: Position[] = [];
+      // Assign anchors to links with small jitter and clamp to viewport
+      const results: Positions = {
+        about: { x: 0, y: 0 },
+        audits: { x: 0, y: 0 },
+        analysis: { x: 0, y: 0 },
+      };
 
-    function farEnough(p: Position) {
-      return placed.every((q) => {
-        const dx = p.x - q.x;
-        const dy = p.y - q.y;
-        return Math.hypot(dx, dy) >= MIN_GAP;
+      LINKS.forEach((link, idx) => {
+        const a = anchors[idx];
+        const x = Math.max(margin, Math.min(vw - margin, a.x + (Math.random() * 2 - 1) * jitter));
+        const y = Math.max(margin, Math.min(vh - margin, a.y + (Math.random() * 2 - 1) * jitter));
+        results[link.id] = { x, y };
       });
-    }
 
-    const results: Positions = { about: { x: cx, y: cy }, audits: { x: cx, y: cy }, analysis: { x: cx, y: cy } };
+      setPositions(results);
+    };
 
-    LINKS.forEach((link, idx) => {
-      let tries = 0;
-      while (tries < 40) {
-        const angle = baseAngles[idx] + rand(-Math.PI / 18, Math.PI / 18); // ~±20° jitter
-        const r = rand(MIN_R, MAX_R);
-        const x = cx + r * Math.cos(angle);
-        const y = cy + r * Math.sin(angle);
-
-        const p = { x, y };
-        if (farEnough(p)) {
-          placed.push(p);
-          results[link.id] = p;
-          break;
-        }
-        tries++;
-      }
-      // Fallback: if we somehow didn't place due to constraints, just stick it on base angle
-      if (!results[link.id]) {
-        const angle = baseAngles[idx];
-        const r = (MIN_R + MAX_R) / 2;
-        results[link.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-      }
-    });
-
-    setPositions(results);
+    // Compute after layout
+    const raf = requestAnimationFrame(compute);
+    window.addEventListener("resize", compute);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", compute);
+    };
   }, []);
 
   return (
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
       {/* Center title */}
       <Link href="/" className="select-none no-underline">
-        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">Auspidiam</h1>
+        <h1 ref={titleRef} className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
+          Auspidiam
+        </h1>
       </Link>
 
-      {/* Peripheral links */}
+      {/* Nearby links, tightly clustered around the title */}
       {positions && (
         <div className="pointer-events-none absolute inset-0">
           {LINKS.map((l) => (
@@ -101,7 +94,8 @@ export default function Home() {
               key={l.id}
               href={l.href}
               className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-xl lowercase tracking-wide text-black transition-opacity hover:opacity-70"
-              style={{ left: positions[l.id].x, top: positions[l.id].y }}>
+              style={{ left: positions[l.id].x, top: positions[l.id].y, zIndex: 10 }}
+            >
               {l.text}
             </Link>
           ))}
