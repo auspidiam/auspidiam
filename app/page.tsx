@@ -52,9 +52,9 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
+    <main className="relative flex flex-1 w-full items-center justify-center overflow-hidden bg-white">
       {/* Center wrapper becomes the positioning context for nearby links */}
-      <div className="relative">
+      <div className="relative z-20">
         <Link href="/" className="select-none no-underline">
           <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
             Auspidiam
