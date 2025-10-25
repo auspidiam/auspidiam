@@ -15,27 +15,23 @@ const LINKS: { id: LinkId; text: string; href: string }[] = [
   { id: "audits", text: "audits", href: "/audits" },
 ];
 
-// Helper for small randomness
 const rand = (min: number, max: number) => Math.random() * (max - min) + min;
 
 export default function Home() {
   const [offsets, setOffsets] = useState<Offsets | null>(null);
 
   useEffect(() => {
-    // Compute small offsets RELATIVE TO THE CENTER WRAPPER, not the viewport
-    // This avoids any bottom-right drift from absolute positioning contexts.
     const J = 6; // jitter in px
 
-    // Three anchor offsets around center: directly above, above-left, above-right
+    // Three anchor offsets around center, now BELOW the title
     const anchors: Offset[] = [
-      { dx: 0, dy: -84 },
-      { dx: -90, dy: -36 },
-      { dx: 90, dy: -36 },
+      { dx: 0, dy: 84 }, // straight below
+      { dx: -90, dy: 36 }, // below-left
+      { dx: 90, dy: 36 }, // below-right
     ];
 
-    // Rotate assignment each refresh for variety
     const order = Math.floor(Math.random() * anchors.length);
-    const ids: LinkId[] = ["analysis", "about", "audits"]; // stable order
+    const ids: LinkId[] = ["analysis", "about", "audits"];
 
     const res: Offsets = {
       about: { dx: 0, dy: 0 },
@@ -53,7 +49,6 @@ export default function Home() {
 
   return (
     <main className="relative flex flex-1 w-full items-center justify-center overflow-hidden bg-white">
-      {/* Center wrapper becomes the positioning context for nearby links */}
       <div className="relative z-20">
         <Link href="/" className="select-none no-underline">
           <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
@@ -61,7 +56,7 @@ export default function Home() {
           </h1>
         </Link>
 
-        {/* Nearby links, positioned RELATIVE to this wrapper's center */}
+        {/* Nearby links, positioned relative to this wrapper's center */}
         {offsets && (
           <>
             {LINKS.map((l) => (
