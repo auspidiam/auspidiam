@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type LinkId = "about" | "audits" | "analysis";
 
@@ -17,7 +17,6 @@ const LINKS: { id: LinkId; text: string; href: string }[] = [
 
 export default function Home() {
   const [positions, setPositions] = useState<Positions | null>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -25,50 +24,40 @@ export default function Home() {
     const compute = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const margin = 16; // keep inside viewport
-      const jitter = 6; // small random wobble in px
+      const cx = vw / 2;
+      const cy = vh / 2;
 
-      const rect = titleRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const pad = 24; // distance from title box
-
-      // Candidate anchors tight around the title
-      const anchors: Position[] = [
-        // directly above
-        { x: cx, y: rect.top - pad },
-        // above-left
-        { x: rect.left - (rect.width * 0.25 + 50), y: cy - rect.height * 0.25 },
-        // above-right
-        { x: rect.right + (rect.width * 0.25 + 50), y: cy - rect.height * 0.25 },
+      // Very tight cluster around the exact screen center
+      // Fixed offsets that bias ABOVE the title, with tiny random jitter
+      const J = 8; // px jitter
+      const anchors = [
+        { x: cx, y: cy - 84 }, // straight above
+        { x: cx - 90, y: cy - 36 }, // above-left
+        { x: cx + 90, y: cy - 36 }, // above-right
       ];
 
-      // Shuffle anchors for variety per refresh
-      for (let i = anchors.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [anchors[i], anchors[j]] = [anchors[j], anchors[i]];
-      }
+      const jitter = (v: number) => v + (Math.random() * 2 - 1) * J;
 
-      // Assign anchors to links with small jitter and clamp to viewport
       const results: Positions = {
         about: { x: 0, y: 0 },
         audits: { x: 0, y: 0 },
         analysis: { x: 0, y: 0 },
       };
 
-      LINKS.forEach((link, idx) => {
-        const a = anchors[idx];
-        const x = Math.max(margin, Math.min(vw - margin, a.x + (Math.random() * 2 - 1) * jitter));
-        const y = Math.max(margin, Math.min(vh - margin, a.y + (Math.random() * 2 - 1) * jitter));
-        results[link.id] = { x, y };
-      });
+      // Assign in a rotated order each refresh for simple variety
+      const order = Math.floor(Math.random() * 3); // 0,1,2
+      const ids: LinkId[] = ["analysis", "about", "audits"]; // consistent order
+
+      for (let i = 0; i < 3; i++) {
+        const id = ids[i];
+        const a = anchors[(i + order) % 3];
+        results[id] = { x: jitter(a.x), y: jitter(a.y) };
+      }
 
       setPositions(results);
     };
 
-    // Compute after layout
+    // Compute after first paint and on resize
     const raf = requestAnimationFrame(compute);
     window.addEventListener("resize", compute);
     return () => {
@@ -81,12 +70,12 @@ export default function Home() {
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-white">
       {/* Center title */}
       <Link href="/" className="select-none no-underline">
-        <h1 ref={titleRef} className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
+        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
           Auspidiam
         </h1>
       </Link>
 
-      {/* Nearby links, tightly clustered around the title */}
+      {/* Three nearby links */}
       {positions && (
         <div className="pointer-events-none absolute inset-0">
           {LINKS.map((l) => (
