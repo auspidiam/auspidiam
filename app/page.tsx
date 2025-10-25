@@ -1,239 +1,115 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import type { MouseEvent, TouchEvent, RefObject } from 'react';
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-// Define the types for the link IDs and positions
-type LinkId = 'about' | 'audits' | 'analysis';
+type LinkId = "about" | "audits" | "analysis";
 
-type Position = {
-  x: number;
-  y: number;
-};
+type Position = { x: number; y: number };
 
-type Positions = {
-  [key in LinkId]: Position;
-};
+type Positions = Record<LinkId, Position>;
 
-// Define the shape and content of each interactive link
-const links: { id: LinkId; text: string; href: string }[] = [
-  { id: 'about', text: 'about', href: '/about' },
-  { id: 'audits', text: 'audits', href: '/audits' },
-  { id: 'analysis', text: 'analysis', href: '/analysis' },
+const LINKS: { id: LinkId; text: string; href: string }[] = [
+  { id: "analysis", text: "analysis", href: "/analysis" },
+  { id: "about", text: "about", href: "/about" },
+  { id: "audits", text: "audits", href: "/audits" },
 ];
 
 export default function Home() {
-  const router = useRouter();
+  const [positions, setPositions] = useState<Positions | null>(null);
 
-  // State to hold the final, saved position of each element
-  const [positions, setPositions] = useState<Positions>({
-    about: { x: 0, y: 0 },
-    audits: { x: 0, y: 0 },
-    analysis: { x: 0, y: 0 },
-  });
-
-  // Ref to track which element is being dragged
-  const isDraggingRef = useRef<LinkId | null>(null);
-  // Ref to store the last known mouse/touch position for smooth dragging
-  const lastPositionRef = useRef({ x: 0, y: 0 });
-  // Ref to track the element's current position during a drag
-  const currentPositionRef = useRef<Position>({ x: 0, y: 0 });
-  // Ref to store the initial position of a link when a drag starts
-  const initialPositionRef = useRef<Position | null>(null);
-
-  // Refs for DOM elements
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const dropzoneRef = useRef<HTMLDivElement | null>(null);
-  const itemRefs: { [key in LinkId]: RefObject<HTMLAnchorElement | null> } = {
-    about: useRef(null),
-    audits: useRef(null),
-    analysis: useRef(null),
-  };
-
-  // State to control visibility after initial positioning
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Function to handle the start of a drag event
-  const handleDragStart = (e: MouseEvent | TouchEvent, id: LinkId) => {
-    e.preventDefault();
-
-    const itemRef = itemRefs[id].current;
-    if (!itemRef) return;
-    
-    isDraggingRef.current = id;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    lastPositionRef.current = { x: clientX, y: clientY };
-
-    currentPositionRef.current = { ...positions[id] };
-    initialPositionRef.current = { ...positions[id] };
-    
-    itemRef.style.transition = 'none';
-  };
-
-  // Function to handle the drag movement
-  const handleDragMove = useCallback((e: globalThis.MouseEvent | globalThis.TouchEvent) => {
-    const isDragging = isDraggingRef.current;
-    if (!isDragging) return;
-
-    const itemRef = itemRefs[isDragging].current;
-    if (!itemRef) return;
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-    const deltaX = clientX - lastPositionRef.current.x;
-    const deltaY = clientY - lastPositionRef.current.y;
-
-    currentPositionRef.current.x += deltaX;
-    currentPositionRef.current.y += deltaY;
-
-    itemRef.style.transform = `translate(${currentPositionRef.current.x}px, ${currentPositionRef.current.y}px)`;
-
-    lastPositionRef.current = { x: clientX, y: clientY };
-  }, [itemRefs]);
-
-  // Function to handle the end of a drag event
-  const handleDragEnd = () => {
-    const isDragging = isDraggingRef.current;
-    
-    const initialPos = initialPositionRef.current;
-    
-    if (!isDragging || !initialPos) {
-      return;
-    }
-
-    const itemRef = itemRefs[isDragging].current;
-    const dropzoneRefCurrent = dropzoneRef.current;
-    if (!itemRef || !dropzoneRefCurrent) return;
-    
-    itemRef.style.transition = 'all 200ms ease-in-out';
-
-    const itemRect = itemRef.getBoundingClientRect();
-    const dropzoneRect = dropzoneRefCurrent.getBoundingClientRect();
-
-    let droppedInDropzone = false;
-    if (
-      itemRect.left >= dropzoneRect.left &&
-      itemRect.right <= dropzoneRect.right &&
-      itemRect.top >= dropzoneRect.top &&
-      itemRect.bottom <= dropzoneRect.bottom
-    ) {
-      droppedInDropzone = true;
-      const linkHref = links.find(link => link.id === isDragging)?.href;
-      if (linkHref) {
-        router.push(linkHref);
-      }
-    }
-    
-    if (!droppedInDropzone) {
-      setPositions(prev => ({
-        ...prev,
-        [isDragging]: initialPos,
-      }));
-    }
-
-    isDraggingRef.current = null;
-    initialPositionRef.current = null;
-  };
-
-  // Effect to set up event listeners for dragging
   useEffect(() => {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleDragMove, { passive: false });
-      window.addEventListener('touchend', handleDragEnd);
+    // Compute once on mount so it changes per refresh, not during hydration
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-      return () => {
-        window.removeEventListener('mousemove', handleDragMove);
-        window.removeEventListener('mouseup', handleDragEnd);
-        window.removeEventListener('touchmove', handleDragMove);
-        window.removeEventListener('touchend', handleDragEnd);
-      };
-  }, [handleDragMove]);
+    // Center of viewport
+    const cx = vw / 2;
+    const cy = vh / 2;
 
-  // Initial positioning logic
-  useEffect(() => {
-    if (containerRef.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const newPositions: Positions = {
-        about: { x: 0, y: 0 },
-        audits: { x: 0, y: 0 },
-        analysis: { x: 0, y: 0 },
-      };
+    // Place each link in a ring around the center with gentle randomness
+    // Keep them away from edges and from each other
+    const MIN_R = Math.min(vw, vh) * 0.18; // inner radius
+    const MAX_R = Math.min(vw, vh) * 0.30; // outer radius
+    const MIN_GAP = Math.min(vw, vh) * 0.15; // min distance between labels
 
-      const orbitRadius = 300; 
+    // Start with evenly spaced base angles, then jitter
+    const baseAngles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
 
-      const centerX = containerRect.width / 2;
-      const centerY = containerRect.height / 2;
+    function rand(min: number, max: number) {
+      return Math.random() * (max - min) + min;
+    }
 
-      const angleStep = (2 * Math.PI) / links.length;
-      links.forEach((link, index) => {
-        const angle = angleStep * index;
-        newPositions[link.id] = {
-          x: centerX + orbitRadius * Math.cos(angle),
-          y: centerY + orbitRadius * Math.sin(angle),
-        };
+    // Shuffle baseAngles for variety
+    for (let i = baseAngles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [baseAngles[i], baseAngles[j]] = [baseAngles[j], baseAngles[i]];
+    }
+
+    const placed: Position[] = [];
+
+    function farEnough(p: Position) {
+      return placed.every((q) => {
+        const dx = p.x - q.x;
+        const dy = p.y - q.y;
+        return Math.hypot(dx, dy) >= MIN_GAP;
       });
-
-      setPositions(newPositions);
-      setIsLoaded(true);
     }
+
+    const results: Partial<Positions> = {};
+
+    LINKS.forEach((link, idx) => {
+      let tries = 0;
+      while (tries < 40) {
+        const angle = baseAngles[idx] + rand(-Math.PI / 9, Math.PI / 9); // ~±20° jitter
+        const r = rand(MIN_R, MAX_R);
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        const p = { x, y };
+        if (farEnough(p)) {
+          placed.push(p);
+          (results as any)[link.id] = p;
+          break;
+        }
+        tries++;
+      }
+      // Fallback: if we somehow didn't place due to constraints, just stick it on base angle
+      if (!(results as any)[link.id]) {
+        const angle = baseAngles[idx];
+        const r = (MIN_R + MAX_R) / 2;
+        (results as any)[link.id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+      }
+    });
+
+    setPositions(results as Positions);
   }, []);
 
   return (
-    <main
-      ref={containerRef}
-      className="flex min-h-screen w-full flex-col relative overflow-hidden"
-    >
-      <div className="fixed top-12 left-1/2 -translate-x-1/2 z-20">
-        <Link href="/" className="cursor-pointer no-underline">
-          <h1 className="text-6xl font-bold text-black">AUSPIDIAM</h1>
-        </Link>
-      </div>
-      
-      <div 
-        ref={dropzoneRef}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '250px',
-          height: '250px',
-          border: '4px solid black',
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        }}
-      ></div>
+    <main className="relative flex h-dvh w-full items-center justify-center overflow-hidden bg-white">
+      {/* Center title */}
+      <Link href="/" className="select-none no-underline">
+        <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
+          AUSPIDIAM
+        </h1>
+      </Link>
 
-      {links.map((link) => (
-        <Link
-          key={link.id}
-          href={link.href}
-          ref={itemRefs[link.id]}
-          className={`
-            absolute
-            cursor-pointer select-none
-            -translate-x-1/2 -translate-y-1/2
-            ${isDraggingRef.current === link.id ? 'opacity-80 scale-105 z-30' : 'z-10'}
-            ${isLoaded ? 'opacity-100' : 'opacity-0'}
-          `}
-          style={{
-            transform: `translate(${positions[link.id].x}px, ${positions[link.id].y}px)`,
-          }}
-          onMouseDown={(e) => handleDragStart(e, link.id)}
-          onTouchStart={(e) => handleDragStart(e, link.id)}
-          onClick={(e) => {
-            if (!isDraggingRef.current) {
-              e.preventDefault();
-            }
-          }}
-        >
-          {link.text}
-        </Link>
-      ))}
+      {/* Peripheral links */}
+      {positions && (
+        <div className="pointer-events-none absolute inset-0">
+          {LINKS.map((l) => (
+            <Link
+              key={l.id}
+              href={l.href}
+              className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-xl lowercase tracking-wide text-black transition-opacity hover:opacity-70"
+              style={{ left: positions[l.id].x, top: positions[l.id].y }}
+              prefetch={false}
+            >
+              {l.text}
+            </Link>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
