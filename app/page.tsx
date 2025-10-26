@@ -10,9 +10,9 @@ type Offset = { dx: number; dy: number };
 type Offsets = Record<LinkId, Offset>;
 
 const LINKS: { id: LinkId; text: string; href: string }[] = [
-  { id: "analysis", text: "analysis", href: "/analysis" },
-  { id: "about", text: "about", href: "/about" },
-  { id: "audits", text: "audits", href: "/audits" },
+  { id: "analysis", text: "analysis.", href: "/analysis" },
+  { id: "about", text: "about.", href: "/about" },
+  { id: "audits", text: "audits.", href: "/audits" },
 ];
 
 const rand = (min: number, max: number) => Math.random() * (max - min) + min;
@@ -23,15 +23,24 @@ export default function Home() {
   useEffect(() => {
     const J = 6; // jitter in px
 
-    // Three anchor offsets around center, now BELOW the title
-    const anchors: Offset[] = [
-      { dx: 0, dy: 84 }, // straight below
-      { dx: -90, dy: 36 }, // below-left
-      { dx: 90, dy: 36 }, // below-right
+    // Four anchor positions around center (above, below, left, right)
+    // Slightly farther than before, per request
+    const ANCHORS: Offset[] = [
+      { dx: 0, dy: -96 },  // above
+      { dx: 0, dy: 96 },   // below
+      { dx: -120, dy: 0 }, // left
+      { dx: 120, dy: 0 },  // right
     ];
 
-    const order = Math.floor(Math.random() * anchors.length);
-    const ids: LinkId[] = ["analysis", "about", "audits"];
+    // Shuffle and select any three anchors so the trio appears around the title
+    const anchors = [...ANCHORS];
+    for (let i = anchors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [anchors[i], anchors[j]] = [anchors[j], anchors[i]];
+    }
+    const chosen = anchors.slice(0, 3);
+
+    const ids: LinkId[] = ["analysis", "about", "audits"]; // stable order
 
     const res: Offsets = {
       about: { dx: 0, dy: 0 },
@@ -40,7 +49,7 @@ export default function Home() {
     };
 
     for (let i = 0; i < 3; i++) {
-      const a = anchors[(i + order) % 3];
+      const a = chosen[i];
       res[ids[i]] = { dx: a.dx + rand(-J, J), dy: a.dy + rand(-J, J) };
     }
 
@@ -52,7 +61,7 @@ export default function Home() {
       <div className="relative z-20">
         <Link href="/" className="select-none no-underline">
           <h1 className="pointer-events-auto text-6xl font-bold tracking-tight text-black">
-            Auspidiam
+            Auspidiam.
           </h1>
         </Link>
 
