@@ -23,11 +23,11 @@ export default function Home() {
         </Link>
 
         <Link
-          href="/arguments"
+          href="/argument"
           className="absolute left-1/2 top-1/2 -translate-x-full -translate-y-1/2 text-xl lowercase tracking-wide text-black hover:opacity-70"
           style={{ marginLeft: "-150px" }}
         >
-          arguments.
+          argument.
         </Link>
 
         <Link
