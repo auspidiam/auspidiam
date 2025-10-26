@@ -17,23 +17,23 @@ export default function Home() {
         <Link
           href="/about"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full text-xl lowercase tracking-wide text-black hover:opacity-70"
-          style={{ marginTop: "-80px" }}
+          style={{ marginTop: "-110px" }}
         >
           about.
         </Link>
 
         <Link
-          href="/audits"
+          href="/arguments"
           className="absolute left-1/2 top-1/2 -translate-x-full -translate-y-1/2 text-xl lowercase tracking-wide text-black hover:opacity-70"
-          style={{ marginLeft: "-120px" }}
+          style={{ marginLeft: "-150px" }}
         >
-          audits.
+          arguments.
         </Link>
 
         <Link
           href="/analysis"
           className="absolute left-1/2 top-1/2 translate-x-0 -translate-y-1/2 text-xl lowercase tracking-wide text-black hover:opacity-70"
-          style={{ marginLeft: "120px" }}
+          style={{ marginLeft: "150px" }}
         >
           analysis.
         </Link>
@@ -41,7 +41,7 @@ export default function Home() {
         <Link
           href="/audio"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-full text-xl lowercase tracking-wide text-black hover:opacity-70"
-          style={{ marginTop: "80px" }}
+          style={{ marginTop: "110px" }}
         >
           audio.
         </Link>
