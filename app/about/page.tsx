@@ -5,11 +5,11 @@ import Link from "next/link";
 export default function AboutPage() {
   return (
     <main className="relative flex flex-1 w-full items-center justify-center overflow-hidden bg-white">
-      {/* Back home link */}
+      {/* Back home link (fixed in upper-left corner) */}
       <Link
         href="/"
         aria-label="Back home"
-        className="absolute top-8 left-8 flex items-center gap-2 text-sm text-black hover:opacity-70"
+        className="fixed top-8 left-8 flex items-center gap-2 text-sm text-black hover:opacity-70"
       >
         <svg
           width="16"
