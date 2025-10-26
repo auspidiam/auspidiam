@@ -1,27 +1,40 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link'; // Import the Link component
+import Link from "next/link";
 
 export default function AnalysisPage() {
   return (
-    <main className="flex min-h-screen flex-col items-start justify-start p-12 gap-12">
-      {/* Header */}
-      <div className="z-10 w-full max-w-5xl flex flex-col items-start text-sm lg:flex-col">
-        {/* Main title link to homepage */}
-        <Link href="/" className="cursor-pointer no-underline">
-          <h1 className="text-6xl font-bold">AUSPIDIAM<span className="font-normal text-4xl">.analysis</span></h1>
+    <main className="relative min-h-screen w-full bg-white">
+      {/* Back home link pinned to the viewport's upper-left */}
+      <div className="absolute top-8 left-8 z-30">
+        <Link
+          href="/"
+          aria-label="Back home"
+          className="flex items-center gap-2 text-sm text-black hover:opacity-70"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0"
+          >
+            <path d="M12 19l-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
+          <span>back home</span>
         </Link>
       </div>
 
-      {/* Main content section */}
-      <div className="z-10 w-full max-w-2xl text-left mx-auto">
-        <p>
-          This is a placeholder for the analysis page. This content will be updated to include more details about our data analysis methods and findings.
-        </p>
-        <p className="mt-4">
-          This content is nonsensical for now, but will be updated later.
-        </p>
+      {/* Centered title */}
+      <div className="flex h-full w-full items-center justify-center">
+        <h1 className="text-6xl font-bold tracking-tight text-black text-center">
+          Analysis.
+        </h1>
       </div>
     </main>
   );
